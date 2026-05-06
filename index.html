@@ -29,16 +29,16 @@
     .msg { margin-top:12px; font-weight:700; }
     .ok { color:#027A48; } .bad { color:#B42318; }
     #labels { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
-    .label { width:8cm; height:4cm; background:#fff; border:1px dashed #999; padding:0.18cm 0.26cm; overflow:hidden; position:relative; page-break-inside:avoid; }
-    .topline { display:grid; grid-template-columns: 2.05cm 1fr; align-items:start; column-gap:.18cm; }
-    .store-id { font-size:20pt; line-height:.95; font-weight:900; text-transform:uppercase; letter-spacing:-.02em; text-align:left; }
-    .do-text { font-size:7.5pt; font-weight:800; text-align:right; overflow:hidden; white-space:nowrap; padding-top:.03cm; }
-    .do-barcode { height:.66cm; overflow:hidden; text-align:center; margin-top:.08cm; margin-left:.08cm; margin-right:.08cm; }
-    .do-barcode svg { width:100%; height:.66cm; display:block; }
-    .store { font-size:10pt; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:.08cm; line-height:1.05; text-align:center; }
-    .carton-barcode { height:.74cm; overflow:hidden; text-align:center; margin-top:.32cm; width:72%; margin-left:auto; margin-right:auto; }
-    .carton-barcode svg { width:100%; height:.74cm; display:block; }
-    .carton-id { position:absolute; bottom:.09cm; left:0; right:0; text-align:center; font-size:16pt; font-weight:900; letter-spacing:.08em; }
+    .label { width:8cm; height:4cm; background:#fff; border:1px dashed #999; padding:1.6mm 2.2mm 1.2mm; overflow:hidden; position:relative; page-break-inside:avoid; }
+    .topline { display:grid; grid-template-columns: 22mm 1fr; align-items:start; column-gap:2mm; height:5.6mm; }
+    .store-id { font-size:15pt; line-height:1; font-weight:900; text-transform:uppercase; letter-spacing:.01em; text-align:left; }
+    .do-text { font-size:7pt; font-weight:800; text-align:right; overflow:hidden; white-space:nowrap; padding-top:.6mm; }
+    .do-barcode { height:10.4mm; overflow:hidden; text-align:center; margin:1mm 0 0; }
+    .do-barcode svg { height:10.4mm; max-width:100%; width:auto; display:inline-block; overflow:visible; shape-rendering:crispEdges; }
+    .store { height:5.2mm; font-size:10.3pt; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:.8mm; line-height:1.05; text-align:center; }
+    .carton-barcode { height:9.8mm; overflow:hidden; text-align:center; margin-top:1.9mm; width:100%; }
+    .carton-barcode svg { height:9.8mm; max-width:82%; width:auto; display:inline-block; overflow:visible; shape-rendering:crispEdges; }
+    .carton-id { position:absolute; bottom:1.1mm; left:0; right:0; text-align:center; font-size:15pt; font-weight:900; letter-spacing:.07em; line-height:1; }
     .hint { font-size:13px; color:var(--muted); margin-top:12px; line-height:1.45; }
     @page { size: 8cm 4cm; margin: 0; }
     @media print {
@@ -46,7 +46,7 @@
       .app > .panel, .hint, h1, .sub { display:none !important; }
       .app { padding:0; margin:0; max-width:none; }
       #labels { display:block; margin:0; gap:0; }
-      .label { border:0; width:8cm; height:4cm; page-break-after:always; break-after:page; }
+      .label { border:0; width:8cm; height:4cm; page-break-after:always; break-after:page; padding:1.6mm 2.2mm 1.2mm; }
     }
   </style>
 </head>
@@ -398,7 +398,17 @@ function reserveIds(qty) {
 function drawBarcodes() {
   if (!window.JsBarcode) return;
   document.querySelectorAll('svg[data-barcode]').forEach(svg => {
-    JsBarcode(svg, svg.dataset.barcode, {format:'CODE128', displayValue:false, margin:0, height:32, width:1.08});
+    const isCarton = svg.closest('.carton-barcode');
+    JsBarcode(svg, svg.dataset.barcode, {
+      format: 'CODE128',
+      displayValue: false,
+      margin: 0,
+      height: isCarton ? 38 : 40,
+      width: isCarton ? 1.55 : 1.35,
+      lineColor: '#000',
+      background: '#fff'
+    });
+    svg.setAttribute('shape-rendering', 'crispEdges');
   });
 }
 function renderLabels(ids, reserve=false) {

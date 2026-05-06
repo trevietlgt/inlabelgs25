@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <style>
+    :root { font-family: Arial, Helvetica, sans-serif; color: #111; }
+    body { margin: 18px; background: #f6f7f9; }
+    .panel { max-width: 760px; margin: 0 auto 18px; background: white; border-radius: 14px; padding: 18px; box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+    h2 { margin: 0 0 14px; }
+    label { display: block; font-weight: 700; margin-top: 12px; }
+    input { width: 100%; box-sizing: border-box; font-size: 20px; padding: 10px 12px; margin-top: 6px; border: 1px solid #c9ced6; border-radius: 10px; }
+    .row { display: grid; grid-template-columns: 1fr 160px; gap: 12px; }
+    .info { margin-top: 12px; padding: 12px; border-radius: 10px; background: #eef6ff; font-size: 18px; }
+    .store-id { font-size: 28px; font-weight: 900; letter-spacing: .5px; }
+    .store-name { font-size: 18px; margin-top: 4px; }
+    .actions { display: flex; gap: 10px; margin-top: 16px; }
+    button { border: 0; border-radius: 10px; padding: 12px 16px; font-size: 16px; font-weight: 800; cursor: pointer; }
+    #printBtn { background: #111; color: white; }
+    #clearBtn { background: #e8eaee; }
+    .status { margin-top: 10px; min-height: 22px; color: #374151; }
+    .error { color: #b00020; font-weight: 700; }
+    .preview-title { max-width: 760px; margin: 16px auto 8px; font-weight: 800; }
+    #labels { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+
+    .label {
+      width: 65mm;
+      height: 35mm;
+      box-sizing: border-box;
+      background: white;
+      border: 1px dashed #bbb;
+      padding: 2.2mm 3mm;
+      display: grid;
+      grid-template-rows: 8mm 8mm 8mm 1fr;
+      overflow: hidden;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .label-top { display: grid; grid-template-columns: 22mm 1fr; align-items: start; column-gap: 2mm; }
+    .label-store-id { font-size: 17pt; line-height: 1; font-weight: 900; text-transform: uppercase; }
+    .do-wrap { text-align: right; overflow: hidden; }
+    .do-barcode { width: 36mm; height: 7mm; }
+    .do-text { font-size: 6.5pt; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .label-store-name { font-size: 8pt; font-weight: 800; line-height: 1.05; display: flex; align-items: center; }
+    .carton-barcode { width: 58mm; height: 9mm; justify-self: center; }
+    .carton-text { text-align: center; font-size: 13pt; font-weight: 900; letter-spacing: .8px; line-height: 1; }
+
+    @page { size: 65mm 35mm; margin: 0; }
+    @media print {
+      body { margin: 0; background: white; }
+      .panel, .preview-title { display: none !important; }
+      #labels { display: block; margin: 0; }
+      .label { border: 0; margin: 0; width: 65mm; height: 35mm; page-break-after: always; }
+      .label:last-child { page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h2>In tem carton</h2>
+    <label for="doInput">Scan / nhập DO</label>
+    <input id="doInput" autocomplete="off" autofocus placeholder="Scan DO tại đây">
+    <div class="info">
+      <div id="storeId" class="store-id">------</div>
+      <div id="storeName" class="store-name">Chưa scan DO</div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="qtyInput">Số lượng tem cần in</label>
+        <input id="qtyInput" type="number" min="1" max="500" value="1">
+      </div>
+    </div>
+    <div class="actions">
+      <button id="printBtn" onclick="generateAndPrint()">In tem</button>
+      <button id="clearBtn" onclick="clearForm()">Xóa dữ liệu</button>
+    </div>
+    <div id="status" class="status"></div>
+  </div>
+
+  <div class="preview-title">Preview tem vừa tạo</div>
+  <div id="labels"></div>
+
+  <script>
+    window.addEventListener('load', letStoreMap);
+    let storeMap = {};
+    let lastLabels = [];
+
+    function letStoreMap() {
+      google.script.run
+        .withSuccessHandler(map => { storeMap = map || {}; })
+        .withFailureHandler(showError)
+        .getStoreMap();
+    }
+
+    document.getElementById('doInput').addEventListener('input', updateStorePreview);
+    document.getElementById('doInput').addEventListener('keydown', event => {
+      if (event.key === 'Enter') document.getElementById('qtyInput').focus();
+    });
+
+    function updateStorePreview() {
+      const doNumber = document.getElementById('doInput').value.trim().toUpperCase();
+      const storeId = doNumber.length >= 6 ? doNumber.slice(0, 6) : '------';
+      document.getElementById('storeId').textContent = storeId;
+      document.getElementById('storeName').textContent = storeMap[storeId] || (doNumber.length >= 6 ? 'Không tìm thấy cửa hàng' : 'Chưa scan DO');
+      clearStatus();
+    }
+
+    function generateAndPrint() {
+      const doNumber = document.getElementById('doInput').value.trim();
+      const qty = Number(document.getElementById('qtyInput').value);
+      setBusy(true, 'Đang tạo ID carton...');
+      google.script.run
+        .withSuccessHandler(labels => {
+          lastLabels = labels;
+          renderLabels(labels);
+          setBusy(false, `Đã tạo ${labels.length} tem. Đang mở hộp thoại in...`);
+          setTimeout(() => window.print(), 350);
+        })
+        .withFailureHandler(err => { setBusy(false); showError(err); })
+        .generateLabels(doNumber, qty);
+    }
+
+    function renderLabels(labels) {
+      const wrap = document.getElementById('labels');
+      wrap.innerHTML = labels.map((x, i) => `
+        <section class="label">
+          <div class="label-top">
+            <div class="label-store-id">${escapeHtml(x.storeId)}</div>
+            <div class="do-wrap">
+              <svg class="do-barcode do-barcode-${i}"></svg>
+              <div class="do-text">DO: ${escapeHtml(x.doNumber)}</div>
+            </div>
+          </div>
+          <div class="label-store-name">${escapeHtml(x.storeName)}</div>
+          <svg class="carton-barcode carton-barcode-${i}"></svg>
+          <div class="carton-text">${escapeHtml(x.cartonId)}</div>
+        </section>`).join('');
+
+      labels.forEach((x, i) => {
+        JsBarcode(`.do-barcode-${i}`, x.doNumber, { format: 'CODE128', displayValue: false, margin: 0, height: 24, width: 1.1 });
+        JsBarcode(`.carton-barcode-${i}`, x.cartonId, { format: 'CODE128', displayValue: false, margin: 0, height: 30, width: 1.25 });
+      });
+    }
+
+    function clearForm() {
+      document.getElementById('doInput').value = '';
+      document.getElementById('qtyInput').value = 1;
+      document.getElementById('labels').innerHTML = '';
+      lastLabels = [];
+      updateStorePreview();
+      document.getElementById('doInput').focus();
+    }
+
+    function setBusy(isBusy, message = '') {
+      document.getElementById('printBtn').disabled = isBusy;
+      document.getElementById('status').className = 'status';
+      document.getElementById('status').textContent = message;
+    }
+    function clearStatus() { document.getElementById('status').textContent = ''; document.getElementById('status').className = 'status'; }
+    function showError(err) { document.getElementById('status').className = 'status error'; document.getElementById('status').textContent = err.message || err; }
+    function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  </script>
+</body>
+</html>

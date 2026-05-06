@@ -1,18 +1,29 @@
-# Carton Label Web App - Google Apps Script
+# Carton Label Printer - GitHub Pages
 
-## Files
-- Code.gs: backend Apps Script, tạo ID carton không trùng bằng LockService + PropertiesService + PrintLog.
-- Index.html: giao diện scan DO, preview, in tem 65mm x 35mm.
-- master_store_seed.csv: dữ liệu cửa hàng trích từ Master Store(1).xlsx.
+## Cách chạy trên GitHub Pages
 
-## Cài đặt
-1. Mở Apps Script project theo web app của anh.
-2. Tạo/cập nhật file Code.gs bằng nội dung trong Code.gs.
-3. Tạo file HTML tên `Index` và dán nội dung Index.html.
-4. Chạy hàm `setupMasterStore()` một lần để nạp danh sách cửa hàng vào Google Sheet.
-5. Deploy web app.
+1. Giải nén file zip này.
+2. Upload toàn bộ file trong thư mục lên repository GitHub.
+3. Đảm bảo file `index.html` nằm ở thư mục gốc của repository, không nằm trong folder con.
+4. Vào Settings > Pages.
+5. Chọn Branch: `main`, Folder: `/root`, rồi Save.
+6. Mở lại link GitHub Pages sau 1-2 phút.
 
-## Logic ID carton
-- Store ID = 6 ký tự đầu của DO, viết hoa.
-- Carton ID = C + YYMMDD + số thứ tự 5 chữ số, ví dụ C26050600001.
-- Mỗi lần bấm In, hệ thống cấp ID mới và ghi vào PrintLog, không tái sử dụng ID cũ.
+## Logic carton ID
+
+Carton ID dùng ngày thực tế trên máy đang in theo format:
+
+`C + YYMMDD + số chạy 4 chữ số`
+
+Ví dụ ngày 06/05/2026:
+
+- C2605060001
+- C2605060002
+
+Sang ngày 07/05/2026:
+
+- C2605070001
+
+## Lưu ý chống trùng
+
+Bản GitHub Pages là web tĩnh nên counter được lưu trong localStorage của từng máy/trình duyệt. Nếu nhiều máy cùng in, cần dùng bản có backend như Google Apps Script/Sheet hoặc database để chống trùng toàn hệ thống.

@@ -38,10 +38,15 @@
     .ok { color:#027A48; } .bad { color:#B42318; }
     #labels { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
     .label { width:8cm; height:4cm; background:#fff; border:1px dashed #999; padding:1.1mm 2.4mm .8mm; overflow:hidden; position:relative; page-break-inside:avoid; display:grid; grid-template-rows:5.2mm 10mm 4.9mm 1.5mm 11mm 4.7mm; row-gap:0; }
+    .label.no-do { grid-template-rows:6mm 0 6mm 2mm 16mm 7mm; }
     .topline { display:grid; grid-template-columns: 22mm 1fr; align-items:start; column-gap:2mm; height:5.2mm; }
     .store-id { font-size:14pt; line-height:1; font-weight:900; text-transform:uppercase; letter-spacing:.01em; text-align:left; }
     .do-text { font-size:7pt; font-weight:800; text-align:right; overflow:hidden; white-space:nowrap; padding-top:.5mm; }
     .do-text.hidden { visibility:hidden; }
+    .label.no-do .do-text, .label.no-do .do-barcode { display:none; }
+    .label.no-do .carton-barcode { height:16mm; }
+    .label.no-do .carton-barcode svg { height:16mm; max-width:98%; }
+    .label.no-do .carton-id { height:7mm; font-size:15pt; padding-top:1mm; }
     .do-barcode { height:10mm; overflow:hidden; text-align:center; margin:0; width:100%; }
     .do-barcode svg { height:10mm; max-width:100%; width:auto; display:inline-block; overflow:visible; shape-rendering:crispEdges; font-weight:400; }
     .store { height:4.9mm; font-size:9.6pt; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.05; text-align:center; }
@@ -78,7 +83,7 @@
       </div>
 
       <div class="options">
-        <label class="checkline"><input id="showDoText" type="checkbox" checked /> Hiển thị số DO khi in</label>
+        <label class="checkline"><input id="showDoText" type="checkbox" checked /> Hiển thị số DO và mã vạch DO khi in</label>
       </div>
 
       <div class="info">
@@ -458,7 +463,7 @@ function renderLabels(ids, reserve=false) {
   const sid = getStoreId();
   const name = getStoreName();
   labelsEl.innerHTML = ids.map(id => `
-    <div class="label">
+    <div class="label ${showDoTextEl.checked ? '' : 'no-do'}">
       <div class="topline">
         <div class="store-id">${escapeHtml(sid)}</div>
         <div class="do-text ${showDoTextEl.checked ? '' : 'hidden'}">DO: ${escapeHtml(doNo)}</div>
@@ -500,7 +505,9 @@ function escapeAttr(s) { return escapeHtml(s).replace(/`/g, '&#96;'); }
 doInput.addEventListener('input', updateInfo);
 qtyInput.addEventListener('input', updateInfo);
 showDoTextEl.addEventListener('change', () => {
+  document.querySelectorAll('.label').forEach(el => el.classList.toggle('no-do', !showDoTextEl.checked));
   document.querySelectorAll('.do-text').forEach(el => el.classList.toggle('hidden', !showDoTextEl.checked));
+  drawBarcodes();
 });
 document.getElementById('previewBtn').addEventListener('click', () => {
   const err = validate(); if (err) return setMsg(err, false);

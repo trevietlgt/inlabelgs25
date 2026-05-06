@@ -43,10 +43,11 @@
     .store-id { font-size:14pt; line-height:1; font-weight:900; text-transform:uppercase; letter-spacing:.01em; text-align:left; }
     .do-text { font-size:7pt; font-weight:800; text-align:right; overflow:hidden; white-space:nowrap; padding-top:.5mm; }
     .do-text.hidden { visibility:hidden; }
-    .label.no-do .do-text, .label.no-do .do-barcode { display:none; }
-    .label.no-do .carton-barcode { height:16mm; }
-    .label.no-do .carton-barcode svg { height:16mm; max-width:98%; }
-    .label.no-do .carton-id { height:7mm; font-size:15pt; padding-top:1mm; }
+    /* Checkbox chỉ ẩn phần DO: dòng DO và mã vạch DO. Carton luôn giữ nguyên và luôn hiển thị. */
+    .label.no-do .do-text, .label.no-do .do-barcode { display:none !important; }
+    .label.no-do .carton-barcode { display:block !important; height:16mm; }
+    .label.no-do .carton-barcode svg { display:inline-block !important; height:16mm; max-width:98%; }
+    .label.no-do .carton-id { display:block !important; visibility:visible !important; height:7mm; font-size:15pt; padding-top:1mm; }
     .do-barcode { height:10mm; overflow:hidden; text-align:center; margin:0; width:100%; }
     .do-barcode svg { height:10mm; max-width:100%; width:auto; display:inline-block; overflow:visible; shape-rendering:crispEdges; font-weight:400; }
     .store { height:4.9mm; font-size:9.6pt; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.05; text-align:center; }
@@ -68,7 +69,7 @@
 <body>
   <div class="app">
     <h1>Carton Label Printer</h1>
-    <p class="sub">Scan DO → tự lấy 6 ký tự đầu làm Store ID → nhập số tem → in tem carton.</p>
+    <p class="sub">Scan DO → tự lấy 6 ký tự đầu làm Store ID → nhập số tem → in tem carton. Checkbox DO chỉ ẩn/hiện số DO và mã vạch DO.</p>
 
     <div class="panel">
       <div class="grid">
@@ -507,6 +508,7 @@ qtyInput.addEventListener('input', updateInfo);
 showDoTextEl.addEventListener('change', () => {
   document.querySelectorAll('.label').forEach(el => el.classList.toggle('no-do', !showDoTextEl.checked));
   document.querySelectorAll('.do-text').forEach(el => el.classList.toggle('hidden', !showDoTextEl.checked));
+  // Không tác động tới barcode carton và dãy số ID carton.
   drawBarcodes();
 });
 document.getElementById('previewBtn').addEventListener('click', () => {

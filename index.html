@@ -29,23 +29,23 @@
     .msg { margin-top:12px; font-weight:700; }
     .ok { color:#027A48; } .bad { color:#B42318; }
     #labels { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
-    .label { width:6.5cm; height:3.5cm; background:#fff; border:1px dashed #999; padding:0.12cm 0.16cm; overflow:hidden; position:relative; page-break-inside:avoid; }
-    .topline { display:flex; align-items:flex-start; justify-content:space-between; gap:4px; }
-    .store-id { font-size:20pt; line-height:1; font-weight:900; text-transform:uppercase; }
-    .do-text { font-size:7pt; font-weight:700; text-align:right; max-width:3.4cm; overflow:hidden; white-space:nowrap; }
-    .barcode-wrap { height:.62cm; overflow:hidden; text-align:center; }
-    .barcode-wrap svg { width:100%; height:.62cm; }
-    .store { font-size:8pt; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-    .carton-barcode { margin-top:1px; }
-    .carton-id { position:absolute; bottom:.08cm; left:0; right:0; text-align:center; font-size:13pt; font-weight:900; letter-spacing:.04em; }
+    .label { width:8cm; height:4cm; background:#fff; border:1px dashed #999; padding:0.18cm 0.22cm; overflow:hidden; position:relative; page-break-inside:avoid; }
+    .topline { display:grid; grid-template-columns: 2.45cm 1fr; align-items:start; column-gap:.14cm; }
+    .store-id { font-size:28pt; line-height:.92; font-weight:900; text-transform:uppercase; letter-spacing:-.03em; text-align:left; }
+    .do-text { font-size:7.5pt; font-weight:800; text-align:left; overflow:hidden; white-space:nowrap; padding-top:.04cm; }
+    .barcode-wrap { height:.72cm; overflow:hidden; text-align:center; margin-top:.05cm; }
+    .barcode-wrap svg { width:100%; height:.72cm; display:block; }
+    .store { font-size:9.5pt; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:.06cm; line-height:1.05; }
+    .carton-barcode { margin-top:.12cm; width:72%; margin-left:auto; margin-right:auto; }
+    .carton-id { position:absolute; bottom:.10cm; left:0; right:0; text-align:center; font-size:16pt; font-weight:900; letter-spacing:.08em; }
     .hint { font-size:13px; color:var(--muted); margin-top:12px; line-height:1.45; }
-    @page { size: 6.5cm 3.5cm; margin: 0; }
+    @page { size: 8cm 4cm; margin: 0; }
     @media print {
       body { background:#fff; }
       .app > .panel, .hint, h1, .sub { display:none !important; }
       .app { padding:0; margin:0; max-width:none; }
       #labels { display:block; margin:0; gap:0; }
-      .label { border:0; width:6.5cm; height:3.5cm; page-break-after:always; break-after:page; }
+      .label { border:0; width:8cm; height:4cm; page-break-after:always; break-after:page; }
     }
   </style>
 </head>
@@ -397,7 +397,7 @@ function reserveIds(qty) {
 function drawBarcodes() {
   if (!window.JsBarcode) return;
   document.querySelectorAll('svg[data-barcode]').forEach(svg => {
-    JsBarcode(svg, svg.dataset.barcode, {format:'CODE128', displayValue:false, margin:0, height:28, width:1.35});
+    JsBarcode(svg, svg.dataset.barcode, {format:'CODE128', displayValue:false, margin:0, height:32, width:1.08});
   });
 }
 function renderLabels(ids, reserve=false) {

@@ -16,6 +16,14 @@
     .grid { display:grid; grid-template-columns: 1.6fr .7fr; gap:14px; }
     label { display:block; font-weight:700; margin-bottom:7px; }
     input { width:100%; height:46px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-size:18px; }
+    input[type="checkbox"] { width:18px; height:18px; padding:0; accent-color:#155EEF; }
+    .options { display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-top:14px; padding:10px 12px; border:1px solid var(--border); border-radius:12px; background:#fafafa; }
+    .checkline { display:flex; align-items:center; gap:8px; font-weight:800; }
+    .store-admin { margin-top:16px; border-top:1px solid var(--border); padding-top:16px; }
+    .store-admin h2 { margin:0 0 10px; font-size:18px; }
+    .admin-grid { display:grid; grid-template-columns:.7fr 1.4fr auto; gap:10px; align-items:end; }
+    .mini { height:42px; font-size:15px; }
+    .tiny-note { font-size:12px; color:var(--muted); margin-top:8px; }
     .info { margin-top:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
     .box { border:1px solid var(--border); border-radius:12px; padding:12px; background:#fafafa; min-height:72px; }
     .k { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
@@ -33,6 +41,7 @@
     .topline { display:grid; grid-template-columns: 22mm 1fr; align-items:start; column-gap:2mm; height:5.2mm; }
     .store-id { font-size:14pt; line-height:1; font-weight:900; text-transform:uppercase; letter-spacing:.01em; text-align:left; }
     .do-text { font-size:7pt; font-weight:800; text-align:right; overflow:hidden; white-space:nowrap; padding-top:.5mm; }
+    .do-text.hidden { visibility:hidden; }
     .do-barcode { height:10mm; overflow:hidden; text-align:center; margin:0; width:100%; }
     .do-barcode svg { height:10mm; max-width:100%; width:auto; display:inline-block; overflow:visible; shape-rendering:crispEdges; font-weight:400; }
     .store { height:4.9mm; font-size:9.6pt; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.05; text-align:center; }
@@ -68,10 +77,30 @@
         </div>
       </div>
 
+      <div class="options">
+        <label class="checkline"><input id="showDoText" type="checkbox" checked /> Hiển thị số DO khi in</label>
+      </div>
+
       <div class="info">
         <div class="box"><div class="k">Store ID</div><div class="v" id="storeId">-</div></div>
         <div class="box"><div class="k">Tên cửa hàng</div><div class="v store-name" id="storeName">-</div></div>
         <div class="box"><div class="k">Carton ID kế tiếp</div><div class="v" id="nextCarton">-</div></div>
+      </div>
+
+      <div class="store-admin">
+        <h2>Update dữ liệu cửa hàng</h2>
+        <div class="admin-grid">
+          <div>
+            <label for="newStoreId">Store ID</label>
+            <input class="mini" id="newStoreId" placeholder="VD: VN0532" maxlength="6" />
+          </div>
+          <div>
+            <label for="newStoreName">Tên cửa hàng</label>
+            <input class="mini" id="newStoreName" placeholder="VD: VN0532 Ten cua hang moi" />
+          </div>
+          <button class="secondary" id="saveStoreBtn">Lưu / cập nhật</button>
+        </div>
+        <div class="tiny-note">Dữ liệu mới được lưu vào local database của trình duyệt này. Nếu muốn dùng chung nhiều máy, cần bản Google Apps Script/Firebase.</div>
       </div>
 
       <div class="actions">
@@ -353,7 +382,16 @@ const STORE_DATA = [
     "name": "Tecco Skyville Tower Thanh Tri"
   }
 ];
-const STORE_MAP = Object.fromEntries(STORE_DATA.map(s => [String(s.id).toUpperCase(), s.name]));
+const EXTRA_STORES_KEY = 'extraStoreData';
+function loadExtraStores() {
+  try { return JSON.parse(localStorage.getItem(EXTRA_STORES_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+function saveExtraStores(rows) { localStorage.setItem(EXTRA_STORES_KEY, JSON.stringify(rows)); }
+function buildStoreMap() {
+  return Object.fromEntries([...STORE_DATA, ...loadExtraStores()].map(s => [String(s.id).toUpperCase(), s.name]));
+}
+let STORE_MAP = buildStoreMap();
 
 const doInput = document.getElementById('doInput');
 const qtyInput = document.getElementById('qtyInput');
@@ -362,6 +400,9 @@ const storeNameEl = document.getElementById('storeName');
 const nextCartonEl = document.getElementById('nextCarton');
 const labelsEl = document.getElementById('labels');
 const msgEl = document.getElementById('msg');
+const showDoTextEl = document.getElementById('showDoText');
+const newStoreIdEl = document.getElementById('newStoreId');
+const newStoreNameEl = document.getElementById('newStoreName');
 
 function pad(n, len) { return String(n).padStart(len, '0'); }
 function dateCode(d = new Date()) {
@@ -420,7 +461,7 @@ function renderLabels(ids, reserve=false) {
     <div class="label">
       <div class="topline">
         <div class="store-id">${escapeHtml(sid)}</div>
-        <div class="do-text">DO: ${escapeHtml(doNo)}</div>
+        <div class="do-text ${showDoTextEl.checked ? '' : 'hidden'}">DO: ${escapeHtml(doNo)}</div>
       </div>
       <div class="do-barcode"><svg data-barcode="${escapeAttr(doNo)}"></svg></div>
       <div class="store">${escapeHtml(name)}</div>
@@ -430,6 +471,20 @@ function renderLabels(ids, reserve=false) {
     </div>`).join('');
   drawBarcodes();
   setMsg((reserve ? 'Đã tạo và giữ số carton: ' : 'Đang xem trước: ') + ids[0] + (ids.length > 1 ? ' → ' + ids[ids.length-1] : ''), true);
+}
+function saveStore() {
+  const id = newStoreIdEl.value.trim().toUpperCase();
+  const name = newStoreNameEl.value.trim();
+  if (!/^VN\d{4}$/i.test(id)) return setMsg('Store ID phải có dạng VN + 4 số, ví dụ VN0532.', false);
+  if (!name) return setMsg('Anh nhập tên cửa hàng trước khi lưu nhé.', false);
+  const rows = loadExtraStores().filter(s => String(s.id).toUpperCase() !== id);
+  rows.push({ id, name });
+  saveExtraStores(rows);
+  STORE_MAP = buildStoreMap();
+  newStoreIdEl.value = '';
+  newStoreNameEl.value = '';
+  updateInfo();
+  setMsg('Đã lưu/cập nhật cửa hàng ' + id + ' vào local database.', true);
 }
 function validate() {
   const doNo = getDO();
@@ -444,6 +499,9 @@ function escapeAttr(s) { return escapeHtml(s).replace(/`/g, '&#96;'); }
 
 doInput.addEventListener('input', updateInfo);
 qtyInput.addEventListener('input', updateInfo);
+showDoTextEl.addEventListener('change', () => {
+  document.querySelectorAll('.do-text').forEach(el => el.classList.toggle('hidden', !showDoTextEl.checked));
+});
 document.getElementById('previewBtn').addEventListener('click', () => {
   const err = validate(); if (err) return setMsg(err, false);
   const start = getCounter() + 1;
@@ -458,6 +516,7 @@ document.getElementById('printBtn').addEventListener('click', () => {
   updateInfo();
   setTimeout(() => window.print(), 250);
 });
+document.getElementById('saveStoreBtn').addEventListener('click', saveStore);
 document.getElementById('clearBtn').addEventListener('click', () => {
   doInput.value = '';
   qtyInput.value = '1';
